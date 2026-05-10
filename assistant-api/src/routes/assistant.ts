@@ -68,15 +68,20 @@ router.post('/assistant/stream', async (req: Request, res: Response) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
+
+  const send = (payload: object) => {
+    res.write(`data: ${JSON.stringify(payload)}\n\n`);
+  };
+
+  let clientGone = false;
+  // Delay registering the close handler so flushHeaders() doesn't trigger it
   res.flushHeaders();
-
-  const clientAbort = new AbortController();
-  req.on('close', () => clientAbort.abort());
-
-  const send = (payload: object) => res.write(`data: ${JSON.stringify(payload)}\n\n`);
+  setImmediate(() => {
+    req.on('close', () => { clientGone = true; });
+  });
 
   try {
-    // Quiz mode: collect full reply first so the client gets complete JSON to parse
+    // Quiz mode: collect full reply first so client gets complete JSON
     if (mode === 'quiz') {
       const reply = await askProvider(provider, mode as AssistantMode, prompt.trim(), history, model);
       send({ token: reply, done: true });
@@ -87,14 +92,14 @@ router.post('/assistant/stream', async (req: Request, res: Response) => {
     const stream = streamProvider(provider, mode as AssistantMode, prompt.trim(), history, model);
 
     for await (const token of stream) {
-      if (clientAbort.signal.aborted) break;
+      if (clientGone) break;
       send({ token, done: false });
     }
 
-    if (!clientAbort.signal.aborted) send({ token: '', done: true });
+    send({ token: '', done: true });
   } catch (e: any) {
     console.error(`[/api/assistant/stream] [${provider}]`, e?.message);
-    if (!clientAbort.signal.aborted) send({ error: e?.message ?? 'Stream failed' });
+    send({ error: e?.message ?? 'Stream failed' });
   } finally {
     res.end();
   }
