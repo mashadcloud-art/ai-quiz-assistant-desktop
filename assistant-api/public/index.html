@@ -39,7 +39,24 @@
       <select id="model-select"></select>
 
       <button id="clear-btn">🗑 Clear chat</button>
+      <button id="status-btn">📊 Provider Status</button>
     </aside>
+
+    <!-- Status Modal -->
+    <div id="status-modal" class="modal-overlay" style="display:none">
+      <div class="modal-box">
+        <div class="modal-header">
+          <span>📊 Provider Status</span>
+          <button id="status-close">✕</button>
+        </div>
+        <div id="status-body" class="status-grid">
+          <div class="status-loading">Loading…</div>
+        </div>
+        <div class="modal-footer">
+          <button id="status-refresh">↻ Refresh</button>
+        </div>
+      </div>
+    </div>
 
     <!-- Main -->
     <main class="main">

@@ -252,3 +252,150 @@ textarea:focus { border-color: var(--accent); }
 .messages::-webkit-scrollbar { width: 5px; }
 .messages::-webkit-scrollbar-track { background: transparent; }
 .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* ── Status button ───────────────────────────────────────── */
+#status-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  transition: border-color .15s, color .15s;
+  margin-top: 4px;
+}
+#status-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Modal overlay ───────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  width: min(680px, 95vw);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 700;
+  font-size: 1rem;
+}
+.modal-header button {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+.modal-header button:hover { background: var(--border); color: var(--text); }
+.modal-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+}
+.modal-footer button {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 18px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background .15s;
+}
+.modal-footer button:hover { background: var(--accent-hover); }
+
+/* ── Status grid ─────────────────────────────────────────── */
+.status-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 16px 20px;
+  overflow-y: auto;
+}
+.status-loading {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--text-muted);
+  padding: 24px;
+}
+.status-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.status-card.configured { border-color: #2a4a2a; }
+.status-card.unconfigured { opacity: .55; }
+.status-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-dot.on  { background: #4caf50; box-shadow: 0 0 6px #4caf5088; }
+.status-dot.off { background: #555; }
+.status-note {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  padding-left: 16px;
+}
+.status-models {
+  font-size: 0.72rem;
+  color: #555;
+  padding-left: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* OpenRouter usage bar */
+.usage-bar-wrap {
+  padding-left: 16px;
+  margin-top: 2px;
+}
+.usage-bar-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+}
+.usage-bar-track {
+  height: 5px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.usage-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width .4s;
+}

@@ -193,6 +193,92 @@ async function sendMessage() {
   }
 }
 
+// ── Provider Status modal ─────────────────────────────────────────────────────
+const statusModal   = document.getElementById('status-modal');
+const statusBody    = document.getElementById('status-body');
+const statusBtn     = document.getElementById('status-btn');
+const statusClose   = document.getElementById('status-close');
+const statusRefresh = document.getElementById('status-refresh');
+
+statusBtn.addEventListener('click', () => { statusModal.style.display = 'flex'; loadStatus(); });
+statusClose.addEventListener('click', () => { statusModal.style.display = 'none'; });
+statusRefresh.addEventListener('click', loadStatus);
+statusModal.addEventListener('click', e => { if (e.target === statusModal) statusModal.style.display = 'none'; });
+
+async function loadStatus() {
+  statusBody.innerHTML = '<div class="status-loading">Loading…</div>';
+  try {
+    const res  = await fetch('/api/status');
+    const data = await res.json();
+    renderStatus(data.providers);
+  } catch {
+    statusBody.innerHTML = '<div class="status-loading">Could not reach server.</div>';
+  }
+}
+
+function renderStatus(providers) {
+  statusBody.innerHTML = '';
+  for (const [id, p] of Object.entries(providers)) {
+    const card = document.createElement('div');
+    card.className = `status-card ${p.configured ? 'configured' : 'unconfigured'}`;
+
+    const header = document.createElement('div');
+    header.className = 'status-card-header';
+
+    const dot = document.createElement('span');
+    dot.className = `status-dot ${p.configured ? 'on' : 'off'}`;
+
+    const label = document.createElement('span');
+    label.textContent = p.label;
+
+    header.appendChild(dot);
+    header.appendChild(label);
+    card.appendChild(header);
+
+    if (p.freeNote) {
+      const note = document.createElement('div');
+      note.className = 'status-note';
+      note.textContent = p.configured ? p.freeNote : 'API key not set';
+      card.appendChild(note);
+    }
+
+    if (p.configured && p.models?.length) {
+      const models = document.createElement('div');
+      models.className = 'status-models';
+      models.textContent = p.models.slice(0, 2).join(', ') + (p.models.length > 2 ? ' …' : '');
+      card.appendChild(models);
+    }
+
+    // OpenRouter usage bar
+    if (id === 'openrouter' && p.configured && p.usage != null) {
+      const wrap  = document.createElement('div');
+      wrap.className = 'usage-bar-wrap';
+
+      const usdUsed = p.usage?.toFixed(4) ?? '0.0000';
+      const usdLimit = p.limit != null ? `$${p.limit.toFixed(2)}` : 'unlimited';
+      const pct = p.limit ? Math.min((p.usage / p.limit) * 100, 100) : 0;
+
+      const lbl = document.createElement('div');
+      lbl.className = 'usage-bar-label';
+      lbl.textContent = `Used: $${usdUsed} / ${usdLimit}` +
+        (p.rateLimit ? `  ·  ${p.rateLimit.requests} req/${p.rateLimit.interval}` : '');
+
+      const track = document.createElement('div');
+      track.className = 'usage-bar-track';
+      const fill = document.createElement('div');
+      fill.className = 'usage-bar-fill';
+      fill.style.width = p.limit ? `${pct}%` : '0%';
+      track.appendChild(fill);
+
+      wrap.appendChild(lbl);
+      wrap.appendChild(track);
+      card.appendChild(wrap);
+    }
+
+    statusBody.appendChild(card);
+  }
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function addMessage(role, text) {
   const msg    = document.createElement('div');

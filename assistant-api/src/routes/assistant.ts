@@ -1,8 +1,10 @@
 import { Router, Request, Response } from 'express';
+import fetch from 'node-fetch';
 import { isOllamaReachable, listModels, HistoryMessage } from '../services/ollama';
 import { VALID_MODES, AssistantMode } from '../services/prompts';
 import {
   VALID_PROVIDERS,
+  PROVIDER_REGISTRY,
   getAvailableProviders,
   streamProvider,
   askProvider,
@@ -39,6 +41,52 @@ router.get('/health', async (_req: Request, res: Response) => {
     models,
     providers: getAvailableProviders(),
   });
+});
+
+// GET /api/status  — provider configuration + credit info
+router.get('/status', async (_req: Request, res: Response) => {
+  const FREE_NOTES: Record<string, string> = {
+    groq:       '14,400 req/day · 6,000 tok/min (free)',
+    gemini:     '1,500 req/day · 1M tok/min (free)',
+    openrouter: 'Free models available',
+    cerebras:   'Free tier — fast inference',
+    sambanova:  'Free tier credits',
+    ollama:     'Unlimited (self-hosted)',
+    claude:     'Paid — see console.anthropic.com',
+    grok:       'Paid — see console.x.ai',
+    deepinfra:  'Pay-per-token — deepinfra.com',
+  };
+
+  const providers: Record<string, any> = {};
+
+  for (const [id, meta] of Object.entries(PROVIDER_REGISTRY)) {
+    const configured = !meta.envKey || !!process.env[meta.envKey];
+    providers[id] = {
+      label:      meta.label,
+      configured,
+      models:     meta.models,
+      freeNote:   FREE_NOTES[id] ?? '',
+    };
+  }
+
+  // OpenRouter: fetch live credit/usage info
+  if (providers.openrouter?.configured) {
+    try {
+      const r = await fetch('https://openrouter.ai/api/v1/auth/key', {
+        headers: { Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}` },
+      });
+      if (r.ok) {
+        const body: any = await r.json();
+        const d = body?.data ?? {};
+        providers.openrouter.usage     = d.usage;        // USD spent
+        providers.openrouter.limit     = d.limit;        // null = unlimited
+        providers.openrouter.isFree    = d.is_free_tier;
+        providers.openrouter.rateLimit = d.rate_limit;   // { requests, interval }
+      }
+    } catch { /* network error — skip */ }
+  }
+
+  res.json({ providers });
 });
 
 // POST /api/assistant  (non-streaming — curl/testing)
