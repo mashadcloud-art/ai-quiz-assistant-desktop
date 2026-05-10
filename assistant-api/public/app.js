@@ -16,7 +16,7 @@ const modelSelect    = document.getElementById('model-select');
 // ── Provider → model list ─────────────────────────────────────────────────────
 const PROVIDER_MODELS = {
   groq:       ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile', 'mixtral-8x7b-32768'],
-  gemini:     ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-2.0-flash'],
+  gemini:     ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash-8b'],
   openrouter: [
     'meta-llama/llama-3.1-8b-instruct:free',
     'mistralai/mistral-7b-instruct:free',

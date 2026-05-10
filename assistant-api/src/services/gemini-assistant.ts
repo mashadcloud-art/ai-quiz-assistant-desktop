@@ -7,7 +7,10 @@ function getModel(modelName: string, systemPrompt: string) {
   if (!key) throw new Error('GEMINI_API_KEY is not set in .env');
   const client = new GoogleGenerativeAI(key);
   return client.getGenerativeModel(
-    { model: modelName, systemInstruction: systemPrompt },
+    {
+      model: modelName,
+      systemInstruction: { role: 'user', parts: [{ text: systemPrompt }] },
+    },
     { apiVersion: 'v1beta' },
   );
 }
@@ -23,7 +26,7 @@ export async function* streamAskGemini(
   mode: AssistantMode,
   userPrompt: string,
   history: HistoryMessage[] = [],
-  modelName = 'gemini-1.5-flash',
+  modelName = 'gemini-2.0-flash',
 ): AsyncGenerator<string> {
   const geminiModel = getModel(modelName, buildSystemPrompt(mode));
   const chat   = geminiModel.startChat({ history: toGeminiHistory(history) });
@@ -38,7 +41,7 @@ export async function askGemini(
   mode: AssistantMode,
   userPrompt: string,
   history: HistoryMessage[] = [],
-  modelName = 'gemini-1.5-flash',
+  modelName = 'gemini-2.0-flash',
 ): Promise<string> {
   const geminiModel = getModel(modelName, buildSystemPrompt(mode));
   const chat   = geminiModel.startChat({ history: toGeminiHistory(history) });
