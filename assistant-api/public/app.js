@@ -15,8 +15,15 @@ const modelSelect    = document.getElementById('model-select');
 
 // ── Provider → model list ─────────────────────────────────────────────────────
 const PROVIDER_MODELS = {
-  groq:      ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile', 'mixtral-8x7b-32768'],
-  gemini:    ['gemini-1.5-flash', 'gemini-2.0-flash-exp'],
+  groq:       ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile', 'mixtral-8x7b-32768'],
+  gemini:     ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-2.0-flash'],
+  openrouter: [
+    'meta-llama/llama-3.1-8b-instruct:free',
+    'mistralai/mistral-7b-instruct:free',
+    'google/gemma-2-9b-it:free',
+    'microsoft/phi-3-mini-128k-instruct:free',
+    'qwen/qwen-2-7b-instruct:free',
+  ],
   claude:    ['claude-haiku-4-5-20251001', 'claude-sonnet-4-6'],
   grok:      ['grok-beta', 'grok-2'],
   deepinfra: ['meta-llama/Meta-Llama-3.1-8B-Instruct', 'mistralai/Mixtral-8x7B-Instruct-v0.1'],
@@ -24,12 +31,13 @@ const PROVIDER_MODELS = {
 };
 
 const PROVIDER_LABELS = {
-  groq:      '⚡ Groq',
-  gemini:    '🔷 Gemini',
-  claude:    '🧠 Claude',
-  grok:      '🐦 Grok',
-  deepinfra: '🔩 DeepInfra',
-  ollama:    '🦙 Ollama',
+  groq:       '⚡ Groq',
+  gemini:     '🔷 Gemini',
+  openrouter: '🌐 OpenRouter',
+  claude:     '🧠 Claude',
+  grok:       '🐦 Grok',
+  deepinfra:  '🔩 DeepInfra',
+  ollama:     '🦙 Ollama',
 };
 
 function populateModels(provider) {

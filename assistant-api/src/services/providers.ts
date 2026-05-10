@@ -21,7 +21,7 @@ export const PROVIDER_REGISTRY: Record<string, ProviderMeta> = {
   },
   gemini: {
     label:  '🔷 Gemini (free)',
-    models: ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-1.5-pro'],
+    models: ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-2.0-flash'],
     envKey: 'GEMINI_API_KEY',
   },
   claude: {
@@ -38,6 +38,17 @@ export const PROVIDER_REGISTRY: Record<string, ProviderMeta> = {
     label:  '🔩 DeepInfra',
     models: ['meta-llama/Meta-Llama-3.1-8B-Instruct', 'mistralai/Mixtral-8x7B-Instruct-v0.1'],
     envKey: 'DEEPINFRA_API_KEY',
+  },
+  openrouter: {
+    label:  '🌐 OpenRouter (free models)',
+    models: [
+      'meta-llama/llama-3.1-8b-instruct:free',
+      'mistralai/mistral-7b-instruct:free',
+      'google/gemma-2-9b-it:free',
+      'microsoft/phi-3-mini-128k-instruct:free',
+      'qwen/qwen-2-7b-instruct:free',
+    ],
+    envKey: 'OPENROUTER_API_KEY',
   },
   ollama: {
     label:  '🦙 Ollama (private)',
@@ -74,8 +85,9 @@ export function streamProvider(
     case 'claude':    return streamAskClaude(mode, prompt, history, model);
     case 'groq':
     case 'grok':
-    case 'deepinfra': return streamAskOpenAICompatible(provider, mode, prompt, history, model);
-    default:          throw new Error(`Unknown provider: "${provider}"`);
+    case 'deepinfra':
+    case 'openrouter': return streamAskOpenAICompatible(provider, mode, prompt, history, model);
+    default:           throw new Error(`Unknown provider: "${provider}"`);
   }
 }
 
@@ -97,7 +109,8 @@ export async function askProvider(
     case 'claude':    return askClaude(mode, prompt, history, model);
     case 'groq':
     case 'grok':
-    case 'deepinfra': return askOpenAICompatible(provider, mode, prompt, history, model);
-    default:          throw new Error(`Unknown provider: "${provider}"`);
+    case 'deepinfra':
+    case 'openrouter': return askOpenAICompatible(provider, mode, prompt, history, model);
+    default:           throw new Error(`Unknown provider: "${provider}"`);
   }
 }

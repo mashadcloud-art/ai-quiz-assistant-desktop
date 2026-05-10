@@ -1,4 +1,4 @@
-// Handles all OpenAI-compatible providers: Groq, xAI (Grok), DeepInfra
+// Handles all OpenAI-compatible providers: Groq, xAI (Grok), DeepInfra, OpenRouter
 import OpenAI from 'openai';
 import { AssistantMode, buildSystemPrompt } from './prompts';
 import { HistoryMessage } from './ollama';
@@ -24,6 +24,11 @@ const CONFIGS: Record<string, () => ProviderConfig> = {
     apiKey:       process.env.DEEPINFRA_API_KEY ?? '',
     baseURL:      'https://api.deepinfra.com/v1/openai',
     defaultModel: 'meta-llama/Meta-Llama-3.1-8B-Instruct',
+  }),
+  openrouter: () => ({
+    apiKey:       process.env.OPENROUTER_API_KEY ?? '',
+    baseURL:      'https://openrouter.ai/api/v1',
+    defaultModel: 'meta-llama/llama-3.1-8b-instruct:free',
   }),
 };
 
