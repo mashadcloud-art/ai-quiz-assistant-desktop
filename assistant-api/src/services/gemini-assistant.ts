@@ -2,13 +2,23 @@ import { GoogleGenerativeAI, Content } from '@google/generative-ai';
 import { AssistantMode, buildSystemPrompt } from './prompts';
 import { HistoryMessage } from './ollama';
 
-function getClient() {
+function getModel(modelName: string) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error('GEMINI_API_KEY is not set in .env');
-  return new GoogleGenerativeAI(key);
+  const client = new GoogleGenerativeAI(key);
+  // v1beta is required for gemini-1.5-* and gemini-2.0-* models
+  return client.getGenerativeModel(
+    { model: modelName },
+    { apiVersion: 'v1beta' },
+  );
 }
 
-// ─── Streaming ────────────────────────────────────────────────────────────────
+function toGeminiHistory(history: HistoryMessage[]): Content[] {
+  return history.map(msg => ({
+    role: msg.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: msg.content }],
+  }));
+}
 
 export async function* streamAskGemini(
   mode: AssistantMode,
@@ -16,29 +26,17 @@ export async function* streamAskGemini(
   history: HistoryMessage[] = [],
   modelName = 'gemini-1.5-flash',
 ): AsyncGenerator<string> {
-  const client = getClient();
-
-  const geminiModel = client.getGenerativeModel({
-    model: modelName,
+  const geminiModel = getModel(modelName);
+  const chat   = geminiModel.startChat({
+    history: toGeminiHistory(history),
     systemInstruction: buildSystemPrompt(mode),
   });
-
-  // Convert history: Gemini uses "model" instead of "assistant"
-  const geminiHistory: Content[] = history.map(msg => ({
-    role: msg.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: msg.content }],
-  }));
-
-  const chat   = geminiModel.startChat({ history: geminiHistory });
   const result = await chat.sendMessageStream(userPrompt);
-
   for await (const chunk of result.stream) {
     const text = chunk.text();
     if (text) yield text;
   }
 }
-
-// ─── Non-streaming (quiz mode) ────────────────────────────────────────────────
 
 export async function askGemini(
   mode: AssistantMode,
@@ -46,19 +44,11 @@ export async function askGemini(
   history: HistoryMessage[] = [],
   modelName = 'gemini-1.5-flash',
 ): Promise<string> {
-  const client = getClient();
-
-  const geminiModel = client.getGenerativeModel({
-    model: modelName,
+  const geminiModel = getModel(modelName);
+  const chat   = geminiModel.startChat({
+    history: toGeminiHistory(history),
     systemInstruction: buildSystemPrompt(mode),
   });
-
-  const geminiHistory: Content[] = history.map(msg => ({
-    role: msg.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: msg.content }],
-  }));
-
-  const chat   = geminiModel.startChat({ history: geminiHistory });
   const result = await chat.sendMessage(userPrompt);
   return result.response.text().trim();
 }
