@@ -1,7 +1,8 @@
 const STREAM_API = '/api/assistant/stream';
 
-let currentMode    = 'chat';
-let history        = [];
+let currentMode     = 'chat';
+let currentProvider = 'ollama';
+let history         = [];
 let abortController = null;
 
 const messagesEl  = document.getElementById('messages');
@@ -19,6 +20,31 @@ function setStreaming(active) {
 
 stopBtn.addEventListener('click', () => {
   if (abortController) abortController.abort();
+});
+
+// ── Provider switching ────────────────────────────────────────────────────────
+const ollamaModels = ['phi3:latest', 'llama3:latest'];
+const geminiModels = ['gemini-1.5-flash', 'gemini-2.0-flash-exp'];
+
+document.querySelectorAll('.provider-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.provider-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentProvider = btn.dataset.provider;
+    history = [];
+
+    // Swap model options
+    const models = currentProvider === 'gemini' ? geminiModels : ollamaModels;
+    modelSelect.innerHTML = models
+      .map(m => `<option value="${m}">${m}</option>`)
+      .join('');
+
+    addMessage('assistant',
+      currentProvider === 'gemini'
+        ? '⚡ Switched to Gemini — fast cloud responses. Make sure GEMINI_API_KEY is set in .env'
+        : '🦙 Switched to Ollama — private, self-hosted.'
+    );
+  });
 });
 
 const modeLabels = {
@@ -77,7 +103,7 @@ async function sendMessage() {
     const res = await fetch(STREAM_API, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, mode: currentMode, history, model: modelSelect.value }),
+      body: JSON.stringify({ prompt, mode: currentMode, history, model: modelSelect.value, provider: currentProvider }),
       signal: abortController.signal,
     });
 

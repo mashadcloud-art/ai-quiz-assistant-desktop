@@ -84,6 +84,28 @@ body {
   outline: none;
 }
 
+.provider-toggle {
+  display: flex;
+  gap: 6px;
+}
+.provider-btn {
+  flex: 1;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 7px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all .15s;
+}
+.provider-btn.active {
+  background: #2d2a55;
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
 #clear-btn {
   margin-top: 12px;
   background: transparent;

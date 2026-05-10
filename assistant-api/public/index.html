@@ -22,7 +22,13 @@
         <button class="mode-btn" data-mode="negotiation_coach">🤝 Negotiation Coach</button>
       </div>
 
-      <div class="section-label" style="margin-top:auto">Model</div>
+      <div class="section-label" style="margin-top:auto">Provider</div>
+      <div class="provider-toggle">
+        <button class="provider-btn active" data-provider="ollama">🦙 Ollama</button>
+        <button class="provider-btn" data-provider="gemini">⚡ Gemini</button>
+      </div>
+
+      <div class="section-label">Model</div>
       <select id="model-select">
         <option value="phi3:latest">phi3 (fast)</option>
         <option value="llama3:latest">llama3 (smarter)</option>
