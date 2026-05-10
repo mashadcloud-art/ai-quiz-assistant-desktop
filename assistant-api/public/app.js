@@ -24,10 +24,12 @@ const PROVIDER_MODELS = {
     'microsoft/phi-3-mini-128k-instruct:free',
     'qwen/qwen-2-7b-instruct:free',
   ],
-  claude:    ['claude-haiku-4-5-20251001', 'claude-sonnet-4-6'],
-  grok:      ['grok-beta', 'grok-2'],
-  deepinfra: ['meta-llama/Meta-Llama-3.1-8B-Instruct', 'mistralai/Mixtral-8x7B-Instruct-v0.1'],
-  ollama:    ['phi3:latest', 'llama3:latest'],
+  claude:     ['claude-haiku-4-5-20251001', 'claude-sonnet-4-6'],
+  grok:       ['grok-beta', 'grok-2'],
+  deepinfra:  ['meta-llama/Meta-Llama-3.1-8B-Instruct', 'mistralai/Mixtral-8x7B-Instruct-v0.1'],
+  cerebras:   ['llama3.1-8b', 'llama3.1-70b'],
+  sambanova:  ['Meta-Llama-3.1-8B-Instruct', 'Meta-Llama-3.1-70B-Instruct'],
+  ollama:     ['phi3:latest', 'llama3:latest'],
 };
 
 const PROVIDER_LABELS = {
@@ -37,6 +39,8 @@ const PROVIDER_LABELS = {
   claude:     '🧠 Claude',
   grok:       '🐦 Grok',
   deepinfra:  '🔩 DeepInfra',
+  cerebras:   '⚡ Cerebras',
+  sambanova:  '🚀 SambaNova',
   ollama:     '🦙 Ollama',
 };
 

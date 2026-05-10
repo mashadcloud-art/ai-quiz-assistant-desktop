@@ -1,4 +1,4 @@
-// Handles all OpenAI-compatible providers: Groq, xAI (Grok), DeepInfra, OpenRouter
+// Handles all OpenAI-compatible providers: Groq, xAI, DeepInfra, OpenRouter, Cerebras, SambaNova
 import OpenAI from 'openai';
 import { AssistantMode, buildSystemPrompt } from './prompts';
 import { HistoryMessage } from './ollama';
@@ -29,6 +29,16 @@ const CONFIGS: Record<string, () => ProviderConfig> = {
     apiKey:       process.env.OPENROUTER_API_KEY ?? '',
     baseURL:      'https://openrouter.ai/api/v1',
     defaultModel: 'meta-llama/llama-3.1-8b-instruct:free',
+  }),
+  cerebras: () => ({
+    apiKey:       process.env.CEREBRAS_API_KEY ?? '',
+    baseURL:      'https://api.cerebras.ai/v1',
+    defaultModel: 'llama3.1-8b',
+  }),
+  sambanova: () => ({
+    apiKey:       process.env.SAMBANOVA_API_KEY ?? '',
+    baseURL:      'https://api.sambanova.ai/v1',
+    defaultModel: 'Meta-Llama-3.1-8B-Instruct',
   }),
 };
 

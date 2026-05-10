@@ -50,6 +50,16 @@ export const PROVIDER_REGISTRY: Record<string, ProviderMeta> = {
     ],
     envKey: 'OPENROUTER_API_KEY',
   },
+  cerebras: {
+    label:  '⚡ Cerebras (fast, free)',
+    models: ['llama3.1-8b', 'llama3.1-70b'],
+    envKey: 'CEREBRAS_API_KEY',
+  },
+  sambanova: {
+    label:  '🚀 SambaNova (free)',
+    models: ['Meta-Llama-3.1-8B-Instruct', 'Meta-Llama-3.1-70B-Instruct'],
+    envKey: 'SAMBANOVA_API_KEY',
+  },
   ollama: {
     label:  '🦙 Ollama (private)',
     models: ['phi3:latest', 'llama3:latest'],
@@ -86,8 +96,10 @@ export function streamProvider(
     case 'groq':
     case 'grok':
     case 'deepinfra':
-    case 'openrouter': return streamAskOpenAICompatible(provider, mode, prompt, history, model);
-    default:           throw new Error(`Unknown provider: "${provider}"`);
+    case 'openrouter':
+    case 'cerebras':
+    case 'sambanova': return streamAskOpenAICompatible(provider, mode, prompt, history, model);
+    default:          throw new Error(`Unknown provider: "${provider}"`);
   }
 }
 
@@ -110,7 +122,9 @@ export async function askProvider(
     case 'groq':
     case 'grok':
     case 'deepinfra':
-    case 'openrouter': return askOpenAICompatible(provider, mode, prompt, history, model);
-    default:           throw new Error(`Unknown provider: "${provider}"`);
+    case 'openrouter':
+    case 'cerebras':
+    case 'sambanova': return askOpenAICompatible(provider, mode, prompt, history, model);
+    default:          throw new Error(`Unknown provider: "${provider}"`);
   }
 }
