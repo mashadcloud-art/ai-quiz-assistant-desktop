@@ -1,13 +1,15 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
 import assistantRouter from './routes/assistant';
 
 const app  = express();
 const PORT = parseInt(process.env.PORT ?? '3001', 10);
 
 app.use(cors());
-app.use(express.json({ limit: '2mb' }));  // allow large pastes for summary mode
+app.use(express.json({ limit: '2mb' }));
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.use('/api', assistantRouter);
 

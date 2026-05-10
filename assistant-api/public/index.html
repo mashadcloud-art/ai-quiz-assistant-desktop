@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My AI Assistant</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-title">My Assistant</div>
+
+      <div class="section-label">Mode</div>
+      <div class="mode-list">
+        <button class="mode-btn active" data-mode="chat">💬 Chat</button>
+        <button class="mode-btn" data-mode="study">📚 Study Coach</button>
+        <button class="mode-btn" data-mode="quiz">🧠 Quiz Generator</button>
+        <button class="mode-btn" data-mode="summary">📄 Summarizer</button>
+        <button class="mode-btn" data-mode="negotiation_coach">🤝 Negotiation Coach</button>
+      </div>
+
+      <div class="section-label" style="margin-top:auto">Model</div>
+      <select id="model-select">
+        <option value="phi3:latest">phi3 (fast)</option>
+        <option value="llama3:latest">llama3 (smarter)</option>
+      </select>
+
+      <button id="clear-btn">🗑 Clear chat</button>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+      <div class="mode-banner" id="mode-banner">💬 Chat</div>
+
+      <div class="messages" id="messages">
+        <div class="msg assistant">
+          <div class="bubble">Hello Mohammed! Choose a mode from the sidebar and ask me anything.</div>
+        </div>
+      </div>
+
+      <div class="input-row">
+        <textarea id="prompt-input" placeholder="Type your message…" rows="2"></textarea>
+        <button id="send-btn">Send</button>
+      </div>
+    </main>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
