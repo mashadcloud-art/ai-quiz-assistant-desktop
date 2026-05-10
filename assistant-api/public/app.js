@@ -1,52 +1,57 @@
 const STREAM_API = '/api/assistant/stream';
 
 let currentMode     = 'chat';
-let currentProvider = 'ollama';
+let currentProvider = 'groq';
 let history         = [];
 let abortController = null;
 
-const messagesEl  = document.getElementById('messages');
-const promptInput = document.getElementById('prompt-input');
-const sendBtn     = document.getElementById('send-btn');
-const stopBtn     = document.getElementById('stop-btn');
-const modeBanner  = document.getElementById('mode-banner');
-const modelSelect = document.getElementById('model-select');
+const messagesEl     = document.getElementById('messages');
+const promptInput    = document.getElementById('prompt-input');
+const sendBtn        = document.getElementById('send-btn');
+const stopBtn        = document.getElementById('stop-btn');
+const modeBanner     = document.getElementById('mode-banner');
+const providerSelect = document.getElementById('provider-select');
+const modelSelect    = document.getElementById('model-select');
 
-function setStreaming(active) {
-  sendBtn.style.display = active ? 'none' : '';
-  stopBtn.style.display = active ? ''     : 'none';
-  promptInput.disabled  = active;
+// ── Provider → model list ─────────────────────────────────────────────────────
+const PROVIDER_MODELS = {
+  groq:      ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile', 'mixtral-8x7b-32768'],
+  gemini:    ['gemini-1.5-flash', 'gemini-2.0-flash-exp'],
+  claude:    ['claude-haiku-4-5-20251001', 'claude-sonnet-4-6'],
+  grok:      ['grok-beta', 'grok-2'],
+  deepinfra: ['meta-llama/Meta-Llama-3.1-8B-Instruct', 'mistralai/Mixtral-8x7B-Instruct-v0.1'],
+  ollama:    ['phi3:latest', 'llama3:latest'],
+};
+
+const PROVIDER_LABELS = {
+  groq:      '⚡ Groq',
+  gemini:    '🔷 Gemini',
+  claude:    '🧠 Claude',
+  grok:      '🐦 Grok',
+  deepinfra: '🔩 DeepInfra',
+  ollama:    '🦙 Ollama',
+};
+
+function populateModels(provider) {
+  const models = PROVIDER_MODELS[provider] ?? [];
+  modelSelect.innerHTML = models.map(m => `<option value="${m}">${m}</option>`).join('');
 }
 
-stopBtn.addEventListener('click', () => {
-  if (abortController) abortController.abort();
-});
+// Init model list for default provider
+populateModels(currentProvider);
 
 // ── Provider switching ────────────────────────────────────────────────────────
-const ollamaModels = ['phi3:latest', 'llama3:latest'];
-const geminiModels = ['gemini-1.5-flash', 'gemini-2.0-flash-exp'];
-
-document.querySelectorAll('.provider-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.provider-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    currentProvider = btn.dataset.provider;
-    history = [];
-
-    // Swap model options
-    const models = currentProvider === 'gemini' ? geminiModels : ollamaModels;
-    modelSelect.innerHTML = models
-      .map(m => `<option value="${m}">${m}</option>`)
-      .join('');
-
-    addMessage('assistant',
-      currentProvider === 'gemini'
-        ? '⚡ Switched to Gemini — fast cloud responses. Make sure GEMINI_API_KEY is set in .env'
-        : '🦙 Switched to Ollama — private, self-hosted.'
-    );
-  });
+providerSelect.addEventListener('change', () => {
+  currentProvider = providerSelect.value;
+  history = [];
+  populateModels(currentProvider);
+  addMessage('assistant',
+    `Switched to ${PROVIDER_LABELS[currentProvider]}. History cleared.\n` +
+    `Model: ${modelSelect.value}`
+  );
 });
 
+// ── Mode switching ────────────────────────────────────────────────────────────
 const modeLabels = {
   chat:              '💬 Chat',
   study:             '📚 Study Coach',
@@ -55,7 +60,6 @@ const modeLabels = {
   negotiation_coach: '🤝 Negotiation Coach',
 };
 
-// ── Mode switching ────────────────────────────────────────────────────────────
 document.querySelectorAll('.mode-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
@@ -74,7 +78,18 @@ document.getElementById('clear-btn').addEventListener('click', () => {
   addMessage('assistant', 'Chat cleared. Ask me anything.');
 });
 
-// ── Send on Enter ─────────────────────────────────────────────────────────────
+// ── Stop ──────────────────────────────────────────────────────────────────────
+function setStreaming(active) {
+  sendBtn.style.display = active ? 'none' : '';
+  stopBtn.style.display = active ? ''     : 'none';
+  promptInput.disabled  = active;
+}
+
+stopBtn.addEventListener('click', () => {
+  if (abortController) abortController.abort();
+});
+
+// ── Enter to send ─────────────────────────────────────────────────────────────
 promptInput.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 });
@@ -87,7 +102,6 @@ async function sendMessage() {
 
   promptInput.value = '';
   setStreaming(true);
-
   addMessage('user', prompt);
 
   const assistantMsg = createEmptyAssistantBubble();
@@ -95,15 +109,19 @@ async function sendMessage() {
   bubble.textContent = '▍';
 
   let fullReply = '';
-  let stopped   = false;
-
-  abortController = new AbortController();
+  abortController  = new AbortController();
 
   try {
     const res = await fetch(STREAM_API, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, mode: currentMode, history, model: modelSelect.value, provider: currentProvider }),
+      body: JSON.stringify({
+        prompt,
+        mode:     currentMode,
+        history,
+        model:    modelSelect.value,
+        provider: currentProvider,
+      }),
       signal: abortController.signal,
     });
 
@@ -148,8 +166,6 @@ async function sendMessage() {
     }
   } catch (err) {
     if (err.name === 'AbortError') {
-      stopped = true;
-      // Keep whatever was streamed so far, just mark it stopped
       bubble.textContent = fullReply ? fullReply + ' [stopped]' : '[stopped]';
       if (fullReply) {
         history.push({ role: 'user',      content: prompt    });
@@ -165,7 +181,7 @@ async function sendMessage() {
   }
 }
 
-// ── Message helpers ───────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function addMessage(role, text) {
   const msg    = document.createElement('div');
   msg.className = `msg ${role}`;
@@ -231,7 +247,6 @@ function renderQuiz(raw) {
       const btn = document.createElement('div');
       btn.className = 'option';
       btn.textContent = opt;
-
       btn.addEventListener('click', () => {
         optsEl.querySelectorAll('.option').forEach(o => o.style.pointerEvents = 'none');
         const chosen = opt.trim()[0];
@@ -245,7 +260,6 @@ function renderQuiz(raw) {
         }
         expEl.classList.add('show');
       });
-
       optsEl.appendChild(btn);
     });
 

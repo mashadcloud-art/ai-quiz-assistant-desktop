@@ -23,16 +23,17 @@
       </div>
 
       <div class="section-label" style="margin-top:auto">Provider</div>
-      <div class="provider-toggle">
-        <button class="provider-btn active" data-provider="ollama">🦙 Ollama</button>
-        <button class="provider-btn" data-provider="gemini">⚡ Gemini</button>
-      </div>
+      <select id="provider-select">
+        <option value="groq">⚡ Groq (fastest)</option>
+        <option value="gemini">🔷 Gemini (free)</option>
+        <option value="claude">🧠 Claude</option>
+        <option value="grok">🐦 Grok (xAI)</option>
+        <option value="deepinfra">🔩 DeepInfra</option>
+        <option value="ollama">🦙 Ollama (private)</option>
+      </select>
 
       <div class="section-label">Model</div>
-      <select id="model-select">
-        <option value="phi3:latest">phi3 (fast)</option>
-        <option value="llama3:latest">llama3 (smarter)</option>
-      </select>
+      <select id="model-select"></select>
 
       <button id="clear-btn">🗑 Clear chat</button>
     </aside>
@@ -43,7 +44,7 @@
 
       <div class="messages" id="messages">
         <div class="msg assistant">
-          <div class="bubble">Hello Mohammed! Choose a mode from the sidebar and ask me anything.</div>
+          <div class="bubble">Hello Mohammed! Pick a provider and mode, then ask me anything.</div>
         </div>
       </div>
 

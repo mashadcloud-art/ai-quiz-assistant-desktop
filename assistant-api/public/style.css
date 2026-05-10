@@ -84,27 +84,18 @@ body {
   outline: none;
 }
 
-.provider-toggle {
-  display: flex;
-  gap: 6px;
-}
-.provider-btn {
-  flex: 1;
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  padding: 7px 6px;
+#provider-select {
+  background: var(--border);
+  color: var(--text);
+  border: 1px solid #3a3a3a;
   border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 0.85rem;
   cursor: pointer;
-  font-size: 0.8rem;
-  transition: all .15s;
+  outline: none;
+  width: 100%;
 }
-.provider-btn.active {
-  background: #2d2a55;
-  border-color: var(--accent);
-  color: #fff;
-  font-weight: 600;
-}
+#provider-select:focus { border-color: var(--accent); }
 
 #clear-btn {
   margin-top: 12px;
