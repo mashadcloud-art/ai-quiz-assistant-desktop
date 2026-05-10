@@ -1,4 +1,5 @@
 import fetch from 'node-fetch';
+import { Response as NodeFetchResponse } from 'node-fetch';
 import { AssistantMode, buildSystemPrompt } from './prompts';
 
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL ?? 'http://129.159.235.164:11434';
@@ -19,21 +20,94 @@ export interface AssistantResponse {
   durationMs?: number;
 }
 
-// ─── Internal Ollama types ────────────────────────────────────────────────────
+// ─── Internal types ───────────────────────────────────────────────────────────
 
 interface OllamaMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
 }
 
-interface OllamaChatResponse {
-  model: string;
+interface OllamaChunk {
   message: { role: string; content: string };
   done: boolean;
-  total_duration?: number;
 }
 
-// ─── Main function ────────────────────────────────────────────────────────────
+// ─── Shared message builder ───────────────────────────────────────────────────
+
+function buildMessages(mode: AssistantMode, userPrompt: string, history: HistoryMessage[]): OllamaMessage[] {
+  const messages: OllamaMessage[] = [
+    { role: 'system', content: buildSystemPrompt(mode) },
+    ...history,
+    { role: 'user', content: userPrompt },
+  ];
+  if (mode === 'quiz') {
+    messages.push({ role: 'assistant', content: '[' });
+  }
+  return messages;
+}
+
+function buildBody(mode: AssistantMode, messages: OllamaMessage[], model: string, stream: boolean) {
+  return JSON.stringify({
+    model,
+    messages,
+    stream,
+    options: {
+      temperature: mode === 'quiz' ? 0.2 : 0.7,
+      num_predict: mode === 'summary' ? 1024 : 600,
+    },
+  });
+}
+
+// ─── Streaming ask (yields text chunks) ──────────────────────────────────────
+
+export async function* streamAsk(
+  mode: AssistantMode,
+  userPrompt: string,
+  history: HistoryMessage[] = [],
+  modelOverride?: string,
+): AsyncGenerator<string> {
+  const model    = modelOverride ?? DEFAULT_MODEL;
+  const messages = buildMessages(mode, userPrompt, history);
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+  let res: NodeFetchResponse;
+  try {
+    res = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: buildBody(mode, messages, model, true),
+      signal: controller.signal as any,
+    });
+  } catch (err: any) {
+    clearTimeout(timer);
+    if (err.name === 'AbortError') throw new Error(`Request timed out after ${TIMEOUT_MS}ms.`);
+    throw err;
+  }
+
+  if (!res.ok) {
+    clearTimeout(timer);
+    const text = await res.text().catch(() => '');
+    throw new Error(`Ollama HTTP ${res.status}: ${text}`);
+  }
+
+  try {
+    for await (const rawChunk of res.body!) {
+      const lines = rawChunk.toString().split('\n').filter(Boolean);
+      for (const line of lines) {
+        let chunk: OllamaChunk;
+        try { chunk = JSON.parse(line); } catch { continue; }
+        if (chunk.message?.content) yield chunk.message.content;
+        if (chunk.done) return;
+      }
+    }
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// ─── Non-streaming ask (for quiz mode — needs full JSON before parsing) ───────
 
 export async function ask(
   mode: AssistantMode,
@@ -41,72 +115,34 @@ export async function ask(
   history: HistoryMessage[] = [],
   modelOverride?: string,
 ): Promise<AssistantResponse> {
-  const model = modelOverride ?? DEFAULT_MODEL;
-
-  const messages: OllamaMessage[] = [
-    { role: 'system', content: buildSystemPrompt(mode) },
-    ...history,
-    { role: 'user', content: userPrompt },
-  ];
-
-  // Prime quiz mode: starting the assistant turn with '[' keeps small models on track
-  if (mode === 'quiz') {
-    messages.push({ role: 'assistant', content: '[' });
-  }
+  const model    = modelOverride ?? DEFAULT_MODEL;
+  const messages = buildMessages(mode, userPrompt, history);
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timer      = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const startedAt  = Date.now();
 
-  const startedAt = Date.now();
-
-  let data: OllamaChatResponse;
+  let reply = '';
   try {
-    const res = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        messages,
-        stream: false,
-        options: {
-          temperature: mode === 'quiz' ? 0.2 : 0.7,
-          num_predict: mode === 'summary' ? 1024 : 600,
-        },
-      }),
-      signal: controller.signal as any,
-    });
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      throw new Error(`Ollama HTTP ${res.status}: ${text}`);
-    }
-
-    data = (await res.json()) as OllamaChatResponse;
+    // For quiz, collect full stream so we can assemble valid JSON
+    const gen = streamAsk(mode, userPrompt, history, model);
+    for await (const chunk of gen) { reply += chunk; }
   } catch (err: any) {
     if (err.name === 'AbortError') {
-      throw new Error(`Request timed out after ${TIMEOUT_MS}ms. Try a shorter prompt or switch to phi3.`);
+      throw new Error(`Request timed out after ${TIMEOUT_MS}ms.`);
     }
     throw err;
   } finally {
     clearTimeout(timer);
   }
 
-  let reply = data.message?.content?.trim() ?? '';
+  reply = reply.trim();
+  if (mode === 'quiz' && !reply.startsWith('[')) reply = '[' + reply;
 
-  // Re-attach the primed '[' if the model's response doesn't include it
-  if (mode === 'quiz' && !reply.startsWith('[')) {
-    reply = '[' + reply;
-  }
-
-  return {
-    reply,
-    model,
-    mode,
-    durationMs: Date.now() - startedAt,
-  };
+  return { reply, model, mode, durationMs: Date.now() - startedAt };
 }
 
-// ─── Health check ─────────────────────────────────────────────────────────────
+// ─── Health checks ────────────────────────────────────────────────────────────
 
 export async function isOllamaReachable(): Promise<boolean> {
   try {
@@ -119,7 +155,7 @@ export async function isOllamaReachable(): Promise<boolean> {
 
 export async function listModels(): Promise<string[]> {
   try {
-    const res = await fetch(`${OLLAMA_BASE_URL}/api/tags`);
+    const res  = await fetch(`${OLLAMA_BASE_URL}/api/tags`);
     if (!res.ok) return [];
     const data = (await res.json()) as { models: { name: string }[] };
     return data.models.map(m => m.name);
