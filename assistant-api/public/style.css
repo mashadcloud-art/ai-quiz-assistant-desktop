@@ -221,6 +221,20 @@ textarea:focus { border-color: var(--accent); }
 #send-btn:hover  { background: var(--accent-hover); }
 #send-btn:disabled { background: #444; cursor: not-allowed; }
 
+#stop-btn {
+  background: transparent;
+  border: 1px solid #e05;
+  color: #e05;
+  border-radius: 10px;
+  padding: 0 16px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s, color .15s;
+}
+#stop-btn:hover { background: #e05; color: #fff; }
+
 /* Scrollbar */
 .messages::-webkit-scrollbar { width: 5px; }
 .messages::-webkit-scrollbar-track { background: transparent; }

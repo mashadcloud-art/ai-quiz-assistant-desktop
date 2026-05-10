@@ -78,13 +78,21 @@ router.post('/assistant/stream', async (req: Request, res: Response) => {
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
 
+  const clientAbort = new AbortController();
+  req.on('close', () => clientAbort.abort());
+
   try {
     for await (const token of streamAsk(mode as AssistantMode, prompt.trim(), history, model)) {
+      if (clientAbort.signal.aborted) break;
       res.write(`data: ${JSON.stringify({ token, done: false })}\n\n`);
     }
-    res.write(`data: ${JSON.stringify({ token: '', done: true })}\n\n`);
+    if (!clientAbort.signal.aborted) {
+      res.write(`data: ${JSON.stringify({ token: '', done: true })}\n\n`);
+    }
   } catch (e: any) {
-    res.write(`data: ${JSON.stringify({ error: e?.message ?? 'Stream failed' })}\n\n`);
+    if (!clientAbort.signal.aborted) {
+      res.write(`data: ${JSON.stringify({ error: e?.message ?? 'Stream failed' })}\n\n`);
+    }
   } finally {
     res.end();
   }

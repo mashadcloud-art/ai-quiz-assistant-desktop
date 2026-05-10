@@ -1,13 +1,25 @@
 const STREAM_API = '/api/assistant/stream';
 
-let currentMode = 'chat';
-let history     = [];
+let currentMode    = 'chat';
+let history        = [];
+let abortController = null;
 
 const messagesEl  = document.getElementById('messages');
 const promptInput = document.getElementById('prompt-input');
 const sendBtn     = document.getElementById('send-btn');
+const stopBtn     = document.getElementById('stop-btn');
 const modeBanner  = document.getElementById('mode-banner');
 const modelSelect = document.getElementById('model-select');
+
+function setStreaming(active) {
+  sendBtn.style.display = active ? 'none' : '';
+  stopBtn.style.display = active ? ''     : 'none';
+  promptInput.disabled  = active;
+}
+
+stopBtn.addEventListener('click', () => {
+  if (abortController) abortController.abort();
+});
 
 const modeLabels = {
   chat:              '💬 Chat',
@@ -45,30 +57,28 @@ sendBtn.addEventListener('click', sendMessage);
 // ── Send ──────────────────────────────────────────────────────────────────────
 async function sendMessage() {
   const prompt = promptInput.value.trim();
-  if (!prompt || sendBtn.disabled) return;
+  if (!prompt) return;
 
   promptInput.value = '';
-  sendBtn.disabled  = true;
+  setStreaming(true);
 
   addMessage('user', prompt);
 
-  // Create an empty assistant bubble we'll stream into
   const assistantMsg = createEmptyAssistantBubble();
   const bubble       = assistantMsg.querySelector('.bubble');
-  bubble.textContent = '▍';  // blinking cursor feel
+  bubble.textContent = '▍';
 
   let fullReply = '';
+  let stopped   = false;
+
+  abortController = new AbortController();
 
   try {
     const res = await fetch(STREAM_API, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        prompt,
-        mode:    currentMode,
-        history,
-        model:   modelSelect.value,
-      }),
+      body: JSON.stringify({ prompt, mode: currentMode, history, model: modelSelect.value }),
+      signal: abortController.signal,
     });
 
     if (!res.ok) {
@@ -87,17 +97,14 @@ async function sendMessage() {
 
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
-      buffer = lines.pop() ?? '';   // keep incomplete last line
+      buffer = lines.pop() ?? '';
 
       for (const line of lines) {
         if (!line.startsWith('data: ')) continue;
         let parsed;
         try { parsed = JSON.parse(line.slice(6)); } catch { continue; }
 
-        if (parsed.error) {
-          bubble.textContent = `⚠️ ${parsed.error}`;
-          return;
-        }
+        if (parsed.error) { bubble.textContent = `⚠️ ${parsed.error}`; return; }
 
         if (parsed.token) {
           fullReply += parsed.token;
@@ -107,22 +114,27 @@ async function sendMessage() {
 
         if (parsed.done) {
           bubble.textContent = fullReply;
-
-          if (currentMode === 'quiz') {
-            assistantMsg.remove();
-            renderQuiz(fullReply);
-          }
-
-          // Save turn to history
+          if (currentMode === 'quiz') { assistantMsg.remove(); renderQuiz(fullReply); }
           history.push({ role: 'user',      content: prompt    });
           history.push({ role: 'assistant', content: fullReply });
         }
       }
     }
   } catch (err) {
-    bubble.textContent = '⚠️ Could not reach the server.';
+    if (err.name === 'AbortError') {
+      stopped = true;
+      // Keep whatever was streamed so far, just mark it stopped
+      bubble.textContent = fullReply ? fullReply + ' [stopped]' : '[stopped]';
+      if (fullReply) {
+        history.push({ role: 'user',      content: prompt    });
+        history.push({ role: 'assistant', content: fullReply });
+      }
+    } else {
+      bubble.textContent = '⚠️ Could not reach the server.';
+    }
   } finally {
-    sendBtn.disabled = false;
+    abortController = null;
+    setStreaming(false);
     promptInput.focus();
   }
 }
